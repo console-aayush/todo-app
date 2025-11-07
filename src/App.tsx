@@ -10,41 +10,45 @@ export default function App() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [newTodo, setNewTodo] = useState("");
 
-  async function fetchData() {
-    const response = await fetch("https://todo-api-qysgog4bbezdyglej7a8a0oy-3000.thekalkicinematicuniverse.com/")
+  const API_URL = "https://todo-api-qysgog4bbezdyglej7a8a0oy-3000.thekalkicinematicuniverse.com/todos";
 
-    const data = await response.json()
-  console.log(data)
+  // Fetch todos from backend
+  async function fetchData() {
+    const res = await fetch(API_URL);
+    const data = await res.json();
+    setTodos(data);
   }
 
-useEffect(() => {
-  fetchData()
-}, [])
+  useEffect(() => {
+    fetchData();
+  }, []);
 
+  // Add new todo
   const addTodo = async () => {
-    const response = await fetch("https://todo-api-qysgog4bbezdyglej7a8a0oy-3000.thekalkicinematicuniverse.com/todos", {
+    if (!newTodo.trim()) return;
+    await fetch(API_URL, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        title: newTodo,
-        completed: false,
-      }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: newTodo, completed: false }),
     });
     setNewTodo("");
+    fetchData();
   };
 
-  const toggleTodo = (id: number) => {
-    setTodos(
-      todos.map((t) =>
-        t.id === id ? { ...t, completed: !t.completed } : t
-      )
-    );
+  // Toggle completed (use PUT)
+  const toggleTodo = async (id: number, completed: boolean) => {
+    await fetch(`${API_URL}/${id}`, {
+      method: "PUT",  // <-- changed to PUT
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ completed: !completed }),
+    });
+    fetchData();
   };
 
-  const deleteTodo = (id: number) => {
-    setTodos(todos.filter((t) => t.id !== id));
+  // Delete todo
+  const deleteTodo = async (id: number) => {
+    await fetch(`${API_URL}/${id}`, { method: "DELETE" });
+    fetchData();
   };
 
   return (
@@ -69,7 +73,7 @@ useEffect(() => {
 
       <ul className="w-full max-w-md space-y-2">
         {todos.length === 0 ? (
-          <p className="text-gray-500 text-center">No todos yet. Add one above!</p>
+          <p className="text-gray-500 text-center">No todos yet!</p>
         ) : (
           todos.map((todo) => (
             <li
@@ -80,13 +84,9 @@ useEffect(() => {
                 <input
                   type="checkbox"
                   checked={todo.completed}
-                  onChange={() => toggleTodo(todo.id)}
+                  onChange={() => toggleTodo(todo.id, todo.completed)}
                 />
-                <span
-                  className={
-                    todo.completed ? "line-through text-gray-400" : ""
-                  }
-                >
+                <span className={todo.completed ? "line-through text-gray-400" : ""}>
                   {todo.title}
                 </span>
               </label>
