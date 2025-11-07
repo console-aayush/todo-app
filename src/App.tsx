@@ -1,5 +1,8 @@
 import { useState, useEffect } from "react";
 import dayjs from "dayjs";
+import { z } from "zod";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 interface Todo {
   id: number;
@@ -9,6 +12,16 @@ interface Todo {
   createdAt?: string;
   completedAt?: string;
 }
+
+// Zod schema
+const todoSchema = z.object({
+  title: z
+    .string()
+    .min(1, "Title is required")
+    .refine((val) => isNaN(Number(val)), "Numbers are not allowed"),
+  completed: z.boolean().optional(),
+  category: z.string().optional(),
+});
 
 export default function App() {
   const [todos, setTodos] = useState<Todo[]>([]);
@@ -21,26 +34,23 @@ export default function App() {
   const [filter, setFilter] = useState<"All" | "Completed" | "Pending">("All");
   const [darkMode, setDarkMode] = useState(false);
 
-  const API_URL = "https://todo-api-qysgog4bbezdyglej7a8a0oy-3000.thekalkicinematicuniverse.com/todos"; // change to deployed URL if needed
+  const API_URL = "https://todo-api-qysgog4bbezdyglej7a8a0oy-3000.thekalkicinematicuniverse.com/todos";
 
   // Fetch todos
   const fetchData = async (searchTerm = "") => {
     try {
       const res = await fetch(`${API_URL}?search=${encodeURIComponent(searchTerm)}`);
       const data = await res.json();
-
       if (!Array.isArray(data)) {
-        console.error("Backend did not return an array", data);
+        toast.error("Failed to fetch todos");
         setTodos([]);
         return;
       }
-
       setTodos(data);
     } catch (err) {
-      console.error("Failed to fetch todos:", err);
+      toast.error("Failed to fetch todos");
     }
   };
-
 
   useEffect(() => {
     fetchData(search);
@@ -48,30 +58,58 @@ export default function App() {
 
   const toggleDarkMode = () => setDarkMode(!darkMode);
 
+  // Add todo with Zod validation
   const addTodo = async () => {
-    if (!newTodo.trim()) return;
-    await fetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: newTodo, completed: false, category }),
-    });
-    setNewTodo("");
-    setCategory("General");
-    fetchData(search);
+    const validation = todoSchema.safeParse({ title: newTodo, category });
+    if (!validation.success) {
+      const message = validation.error?.errors?.[0]?.message || "Invalid input";
+      toast.error(message);
+      return;
+    }
+
+    try {
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: newTodo, completed: false, category }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        toast.error(data?.error || "Failed to create todo");
+        return;
+      }
+
+      setNewTodo("");
+      setCategory("General");
+      fetchData(search);
+      toast.success("Todo added!");
+    } catch (err) {
+      toast.error("Failed to create todo");
+    }
   };
 
   const toggleTodo = async (id: number, completed: boolean, title: string, category: string) => {
-    await fetch(`${API_URL}/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, completed: !completed, category }),
-    });
-    fetchData(search);
+    try {
+      await fetch(`${API_URL}/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, completed: !completed, category }),
+      });
+      fetchData(search);
+    } catch (err) {
+      toast.error("Failed to update todo");
+    }
   };
 
   const deleteTodo = async (id: number) => {
-    await fetch(`${API_URL}/${id}`, { method: "DELETE" });
-    fetchData(search);
+    try {
+      await fetch(`${API_URL}/${id}`, { method: "DELETE" });
+      fetchData(search);
+      toast.info("Todo deleted");
+    } catch (err) {
+      toast.error("Failed to delete todo");
+    }
   };
 
   const startEdit = (todo: Todo) => {
@@ -87,18 +125,29 @@ export default function App() {
   };
 
   const saveEdit = async (id: number, completed: boolean) => {
-    if (!editingTitle.trim()) return;
-    await fetch(`${API_URL}/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: editingTitle,
-        completed,
-        category: editingCategory,
-      }),
-    });
-    cancelEdit();
-    fetchData(search);
+    const validation = todoSchema.safeParse({ title: editingTitle, category: editingCategory });
+    if (!validation.success) {
+      const message = validation.error?.errors?.[0]?.message || "Invalid input";
+      toast.error(message);
+      return;
+    }
+
+    try {
+      await fetch(`${API_URL}/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: editingTitle,
+          completed,
+          category: editingCategory,
+        }),
+      });
+      cancelEdit();
+      fetchData(search);
+      toast.success("Todo updated!");
+    } catch (err) {
+      toast.error("Failed to update todo");
+    }
   };
 
   const visibleTodos = todos.filter(todo =>
@@ -111,6 +160,8 @@ export default function App() {
 
   return (
     <div className={`min-h-screen flex flex-col items-center pt-10 px-4 ${bgClass}`}>
+      <ToastContainer position="top-right" autoClose={3000} />
+
       {/* Header */}
       <div className="flex items-center justify-between w-full max-w-md mb-6">
         <h1 className="text-3xl font-bold">📝 Todo App</h1>
