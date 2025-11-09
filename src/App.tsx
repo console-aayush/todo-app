@@ -30,12 +30,12 @@ export default function App() {
   return (
     <Router>
       <div className={darkMode ? "bg-gray-900 text-white min-h-screen" : "bg-gray-50 text-black min-h-screen"}>
-        <Navbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+        <Navbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} token={token} onLogout={handleLogout} />
         <Routes>
           <Route path="/" element={token ? <Navigate to="/todos" /> : <Navigate to="/login" />} />
           <Route path="/login" element={!token ? <LoginPage onLoginSuccess={handleLoginSuccess} /> : <Navigate to="/todos" />} />
           <Route path="/signup" element={!token ? <SignupPage /> : <Navigate to="/todos" />} />
-          <Route path="/todos" element={token ? <TodoPage darkMode={darkMode} /> : <Navigate to="/login" />} />
+          <Route path="/todos" element={token ? <TodoPage darkMode={darkMode} token={token} /> : <Navigate to="/login" />} />
           <Route path="/logout" element={<LogoutPage onLogout={handleLogout} />} />
         </Routes>
       </div>

@@ -132,12 +132,8 @@ const TodoPage: React.FC<TodoPageProps> = ({ darkMode }) => {
     <div className={`min-h-screen flex flex-col items-center pt-6 px-4 ${bgClass}`}>
       <ToastContainer position="top-right" autoClose={3000} />
 
-      {/* Logout Button */}
-      <div className="flex justify-end w-full max-w-md mb-4">
-        <button onClick={handleLogout} className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
-          Logout
-        </button>
-      </div>
+  
+      
 
       {/* Add Todo */}
       <div className="flex gap-2 w-full max-w-md mb-4">

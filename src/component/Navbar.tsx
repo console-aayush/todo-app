@@ -1,11 +1,15 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 
 interface NavbarProps {
   darkMode: boolean;
   toggleDarkMode: () => void;
+  token: string | null;
+  onLogout: () => void;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ darkMode, toggleDarkMode }) => {
+const Navbar: React.FC<NavbarProps> = ({ darkMode, toggleDarkMode, token, onLogout }) => {
+  const navigate = useNavigate();
   const bgClass = darkMode ? "bg-gray-800 text-white" : "bg-white text-black";
   const buttonHoverClass = darkMode ? "hover:bg-gray-700" : "hover:bg-gray-300";
 
@@ -19,9 +23,22 @@ const Navbar: React.FC<NavbarProps> = ({ darkMode, toggleDarkMode }) => {
         >
           {darkMode ? "☀️ Light" : "🌙 Dark"}
         </button>
-        <button className="px-3 py-1 rounded border hover:bg-blue-500 hover:text-white">
-          Login
-        </button>
+
+        {token ? (
+          <button
+            onClick={onLogout}
+            className={`px-3 py-1 rounded border ${buttonHoverClass} bg-red-500 text-white hover:bg-red-600`}
+          >
+            Logout
+          </button>
+        ) : (
+          <button
+            onClick={() => navigate("/login")}
+            className={`px-3 py-1 rounded border ${buttonHoverClass} bg-blue-500 text-white hover:bg-blue-600`}
+          >
+            Login
+          </button>
+        )}
       </div>
     </nav>
   );
